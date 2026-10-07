@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.1] - 2026-10-07
+
+### Changed
+- Shortened the `enable_remote_control` description: dropped the note that it does not start Claude Code by itself
+
 ## [1.1.0] - 2026-10-07
 
 ### Added

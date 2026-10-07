@@ -51,8 +51,7 @@ configuration:
   enable_remote_control:
     name: Enable Remote Control
     description: >-
-      Turn on Remote Control whenever Claude Code starts. This does not start
-      Claude Code by itself; combine it with Launch Claude Code Automatically for that.
+      Turn on Remote Control whenever Claude Code starts.
       Allows you to view and steer your local Claude Code session from claude.ai/code
       or the Claude mobile app. Requires a claude.ai Pro, Max, Team, or Enterprise
       subscription (API keys are not supported). Security note: this add-on runs as

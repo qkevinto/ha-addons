@@ -53,8 +53,7 @@ configuration:
   enable_remote_control:
     name: Habilitar Controle Remoto
     description: >-
-      Ativa o Controle Remoto sempre que o Claude Code inicia. Isso não inicia o
-      Claude Code por si só; combine com Iniciar o Claude Code Automaticamente para isso.
+      Ativa o Controle Remoto sempre que o Claude Code inicia.
       Permite visualizar e controlar sua sessão local do Claude Code pelo claude.ai/code
       ou pelo aplicativo móvel do Claude. Requer assinatura claude.ai Pro, Max, Team ou
       Enterprise (chaves de API não são suportadas). Nota de segurança: este add-on é
