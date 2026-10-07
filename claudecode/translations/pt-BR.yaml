@@ -33,6 +33,12 @@ configuration:
     description: >-
       O diretório padrão quando o Claude Code inicia.
       Use /homeassistant para acesso direto aos arquivos de configuração do HA.
+  launch_claude:
+    name: Iniciar o Claude Code Automaticamente
+    description: >-
+      Inicia o Claude Code no terminal em vez de um shell comum. Com a Persistência
+      de Sessão habilitada, ele inicia junto com o add-on, então o Controle Remoto
+      fica acessível sem abrir o painel. Ao sair do Claude Code, você volta a um shell.
   session_persistence:
     name: Persistência de Sessão
     description: >-
@@ -47,7 +53,8 @@ configuration:
   enable_remote_control:
     name: Habilitar Controle Remoto
     description: >-
-      Inicia automaticamente o Claude Code com Controle Remoto habilitado em cada sessão.
+      Ativa o Controle Remoto sempre que o Claude Code inicia. Isso não inicia o
+      Claude Code por si só; combine com Iniciar o Claude Code Automaticamente para isso.
       Permite visualizar e controlar sua sessão local do Claude Code pelo claude.ai/code
       ou pelo aplicativo móvel do Claude. Requer assinatura claude.ai Pro, Max, Team ou
       Enterprise (chaves de API não são suportadas). Nota de segurança: este add-on é

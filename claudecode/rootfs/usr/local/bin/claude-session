@@ -1,0 +1,7 @@
+#!/bin/bash
+# Shell for the terminal when launch_claude is on: start Claude Code, then drop
+# to a normal login shell when it exits (/exit, Ctrl+C twice) so the terminal
+# stays usable. Remote Control, if enabled, comes from remoteControlAtStartup
+# in settings.json, which claude reads when it starts.
+claude
+exec bash --login

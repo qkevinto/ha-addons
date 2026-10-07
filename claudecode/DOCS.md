@@ -101,13 +101,27 @@ claude --continue
 | `terminal_theme` | dark or light | dark |
 | `working_directory` | Start directory | /homeassistant |
 | `session_persistence` | Use tmux for persistent sessions | true |
+| `launch_claude` | Start Claude Code in the terminal instead of a plain shell. See below | false |
 | `auto_update_claude` | Auto-update Claude Code on startup (rolls back automatically if the new release cannot run) | true |
-| `enable_remote_control` | View and steer the session from claude.ai/code or the Claude mobile app. See the security note below | false |
+| `enable_remote_control` | Turn on Remote Control whenever Claude Code starts, so the session can be viewed and steered from claude.ai/code or the Claude mobile app. See the security note below | false |
 | `remote_control_session_prefix` | Prefix for auto-generated Remote Control session names | HomeAssistant |
+
+### Launching Claude Code automatically
+
+By default the terminal opens a shell and you start Claude Code with `claude` (or `c`). With `launch_claude`, the terminal runs Claude Code for you. When you exit it (`/exit`), you drop to a normal shell; type `c` to start it again.
+
+When it starts depends on `session_persistence`:
+
+| `session_persistence` | Claude Code starts | Reopening the panel |
+|---|---|---|
+| on (tmux) | When the add-on starts, in a background tmux session | Reattaches to the running session |
+| off | Each time the terminal panel is opened | Starts a new Claude Code |
 
 ### Remote Control
 
 With `enable_remote_control`, sessions can be driven from `claude.ai/code` or the Claude mobile app (requires a Pro, Max, Team, or Enterprise subscription; API keys are not supported).
+
+Remote Control turns on when Claude Code starts; it does not start Claude Code by itself. To have a session ready on claude.ai/code as soon as Home Assistant is up, turn on `launch_claude` and keep `session_persistence` on. Without tmux, Remote Control is only available while the terminal panel is open.
 
 **Security note:** anyone who can sign in to the linked Claude account can read and write your HA config directory and drive Home Assistant through its API. Leave this off unless you need it.
 

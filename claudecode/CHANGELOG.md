@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0] - 2026-10-07
+
+### Added
+- `launch_claude` option: the terminal starts Claude Code instead of a plain shell, and drops to a shell when it exits. With `session_persistence` on, the tmux session is started when the add-on starts, so together with `enable_remote_control` a Remote Control session is available on claude.ai/code without opening the panel. Off by default
+
+### Changed
+- `enable_remote_control` description and startup log no longer claim it starts Claude Code; it turns on Remote Control whenever Claude Code starts
+
 ## [1.0.1] - 2026-10-07
 
 ### Fixed

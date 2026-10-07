@@ -84,6 +84,8 @@ RUN mkdir -p \
 # COPY works on every builder and needs no syntax image.
 COPY rootfs/root/.tmux.conf /root/.tmux.conf
 COPY rootfs/root/.bashrc /root/.bashrc
+COPY rootfs/usr/local/bin/claude-session /usr/local/bin/claude-session
+RUN chmod +x /usr/local/bin/claude-session
 
 # Ensure .bashrc is sourced for login shells too
 RUN echo 'source ~/.bashrc' > /root/.profile
@@ -164,6 +166,7 @@ CMD ["/bin/bash", "-c", "\
   FONT_SIZE=$(jq -r '.terminal_font_size // 14' /data/options.json) && \
   THEME=$(jq -r '.terminal_theme // \"dark\"' /data/options.json) && \
   SESSION_PERSIST=$(jq -r 'if .session_persistence == null then true else .session_persistence end' /data/options.json) && \
+  LAUNCH_CLAUDE=$(jq -r '.launch_claude // false' /data/options.json) && \
   ENABLE_MCP=$(jq -r 'if .enable_mcp == null then true else .enable_mcp end' /data/options.json) && \
   ENABLE_PLAYWRIGHT=$(jq -r '.enable_playwright_mcp // false' /data/options.json) && \
   PLAYWRIGHT_HOST=$(jq -r '.playwright_cdp_host // \"\"' /data/options.json) && \
@@ -239,7 +242,7 @@ CMD ["/bin/bash", "-c", "\
   fi && \
   if [ \"$REMOTE_CONTROL\" = \"true\" ]; then \
     jq '.remoteControlAtStartup = true' \"$SETTINGS_FILE\" > /tmp/settings.tmp && mv /tmp/settings.tmp \"$SETTINGS_FILE\" && \
-    echo '[INFO] Remote Control enabled - Claude Code will auto-start with remote control'; \
+    echo '[INFO] Remote Control enabled - it turns on whenever Claude Code starts'; \
   else \
     jq 'del(.remoteControlAtStartup)' \"$SETTINGS_FILE\" > /tmp/settings.tmp && mv /tmp/settings.tmp \"$SETTINGS_FILE\"; \
     echo '[INFO] Remote Control auto-start disabled'; \
@@ -249,10 +252,11 @@ CMD ["/bin/bash", "-c", "\
   else \
     COLORS='background=#eff1f5,foreground=#4c4f69,cursor=#dc8a78'; \
   fi && \
+  if [ \"$LAUNCH_CLAUDE\" = \"true\" ]; then SESSION_SHELL=claude-session; else SESSION_SHELL='bash --login'; fi && \
   if [ \"$SESSION_PERSIST\" = \"true\" ]; then \
-    SHELL_CMD='tmux new-session -A -s claude'; \
+    SHELL_CMD=\"tmux new-session -A -s claude $SESSION_SHELL\"; \
   else \
-    SHELL_CMD='bash --login'; \
+    SHELL_CMD=\"$SESSION_SHELL\"; \
   fi && \
   if [ \"$REMOTE_CONTROL\" = \"true\" ]; then export CLAUDE_REMOTE_CONTROL_SESSION_NAME_PREFIX=\"$RC_SESSION_PREFIX\"; fi && \
   WORK_DIR=$(jq -r '.working_directory // \"/homeassistant\"' /data/options.json) && \
@@ -261,6 +265,18 @@ CMD ["/bin/bash", "-c", "\
   else \
     echo \"[WARN] working_directory $WORK_DIR does not exist, using /homeassistant\"; \
     cd /homeassistant; \
+  fi && \
+  if [ \"$LAUNCH_CLAUDE\" = \"true\" ] && [ \"$SESSION_PERSIST\" = \"true\" ]; then \
+    if tmux new-session -d -s claude claude-session; then \
+      echo '[INFO] Claude Code started in the background tmux session'; \
+    else \
+      echo '[WARN] Could not pre-start the tmux session; Claude Code will start when the terminal is opened'; \
+    fi; \
+  elif [ \"$LAUNCH_CLAUDE\" = \"true\" ]; then \
+    echo '[INFO] Claude Code will start when the terminal is opened'; \
+    if [ \"$REMOTE_CONTROL\" = \"true\" ]; then \
+      echo '[WARN] session_persistence is off, so Remote Control is only available while the terminal panel is open'; \
+    fi; \
   fi && \
   exec ttyd --port 7681 --writable --ping-interval 30 --max-clients 5 \
     -t fontSize=$FONT_SIZE \

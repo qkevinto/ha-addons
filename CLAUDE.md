@@ -25,7 +25,7 @@ This file contains instructions for Claude Code when working on this repository.
   - `CHANGELOG.md` - Version history (**update before commits**)
   - `apparmor.txt` - Security profile
   - `install-claude.sh` - Installs the newest Claude Code release that runs on the host
-  - `rootfs/` - Files copied into the image (`.bashrc`, `.tmux.conf`)
+  - `rootfs/` - Files copied into the image (`.bashrc`, `.tmux.conf`, `claude-session` launcher)
   - `translations/` - Option labels and descriptions shown in the HA UI
 
 ## Version Bumping
