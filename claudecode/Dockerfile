@@ -100,6 +100,11 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
 
 # Startup script that reads config and persists Claude auth
 # Use /homeassistant/.claudecode which is always persistent
+# The startup script must not run any claude command that authenticates
+# (claude mcp ... does, claude --version does not). If the OAuth token has
+# expired, such a command refreshes it, and refresh tokens are single-use: a
+# `timeout` kill before the new token is saved logs the user out. MCP servers
+# are therefore written into .claude.json with jq rather than `claude mcp add`.
 ENTRYPOINT []
 CMD ["/bin/bash", "-c", "\
   export HA_TOKEN=\"$SUPERVISOR_TOKEN\" && \
@@ -203,37 +208,34 @@ CMD ["/bin/bash", "-c", "\
   else \
     echo \"[INFO] Claude Code $BUILT_VERSION (verified at build time)\"; \
   fi && \
-  if timeout 30 claude --version < /dev/null > /dev/null 2>&1; then \
-    CLAUDE_OK=true; \
-  else \
-    CLAUDE_OK=false; \
-    echo '[ERROR] claude CLI did not respond within 30s - skipping MCP setup'; \
+  if ! timeout 30 claude --version < /dev/null > /dev/null 2>&1; then \
+    echo '[ERROR] claude CLI did not respond within 30s'; \
     echo '[ERROR] The terminal will still start so you can debug from inside the add-on'; \
   fi && \
-  if [ \"$CLAUDE_OK\" = \"true\" ]; then \
-    timeout 30 claude mcp remove homeassistant -s user > /dev/null 2>&1 || true; \
-    timeout 30 claude mcp remove playwright -s user > /dev/null 2>&1 || true; \
-  fi && \
-  if [ \"$CLAUDE_OK\" = \"true\" ] && [ \"$ENABLE_MCP\" = \"true\" ]; then \
-    timeout 30 claude mcp add-json homeassistant '{\"command\":\"hass-mcp\"}' -s user && \
-    SETTINGS_FILE=/root/.claude/settings.json && \
+  CLAUDE_JSON=$PERSIST_DIR/.claude.json && \
+  MCP_SERVERS='{}' && \
+  if [ \"$ENABLE_MCP\" = \"true\" ]; then \
+    MCP_SERVERS=$(echo \"$MCP_SERVERS\" | jq -c '.homeassistant = {command: \"hass-mcp\", args: []}') && \
     ALLOWED_TOOLS='[\"mcp__homeassistant__get_version\",\"mcp__homeassistant__get_entity\",\"mcp__homeassistant__list_entities\",\"mcp__homeassistant__search_entities_tool\",\"mcp__homeassistant__domain_summary_tool\",\"mcp__homeassistant__list_automations\",\"mcp__homeassistant__get_history\",\"mcp__homeassistant__get_error_log\"]' && \
     jq --argjson tools \"$ALLOWED_TOOLS\" '.permissions.allow = ($tools + (.permissions.allow // []) | unique)' $SETTINGS_FILE > /tmp/settings.tmp && mv /tmp/settings.tmp $SETTINGS_FILE && \
     echo '[INFO] MCP configured with Home Assistant integration'; \
     echo '[INFO] Pre-authorized read-only MCP tools'; \
-  elif [ \"$ENABLE_MCP\" = \"true\" ]; then \
-    echo '[WARN] MCP is enabled but was skipped: the claude CLI is not responding'; \
   else \
     echo '[INFO] MCP disabled'; \
   fi && \
-  if [ \"$CLAUDE_OK\" = \"true\" ] && [ \"$ENABLE_PLAYWRIGHT\" = \"true\" ]; then \
-    timeout 30 claude mcp add-json playwright \"{\\\"command\\\":\\\"npx\\\",\\\"args\\\":[\\\"--no-install\\\",\\\"@playwright/mcp\\\",\\\"--cdp-endpoint\\\",\\\"http://${PLAYWRIGHT_HOST}:9222\\\"]}\" -s user && \
+  if [ \"$ENABLE_PLAYWRIGHT\" = \"true\" ]; then \
+    MCP_SERVERS=$(echo \"$MCP_SERVERS\" | jq -c --arg cdp \"http://${PLAYWRIGHT_HOST}:9222\" '.playwright = {command: \"npx\", args: [\"--no-install\", \"@playwright/mcp\", \"--cdp-endpoint\", $cdp]}') && \
     echo \"[INFO] Playwright MCP enabled (CDP: http://${PLAYWRIGHT_HOST}:9222)\"; \
     echo '[INFO] Make sure the Playwright Browser add-on is installed and running'; \
-  elif [ \"$ENABLE_PLAYWRIGHT\" = \"true\" ]; then \
-    echo '[WARN] Playwright MCP is enabled but was skipped: the claude CLI is not responding'; \
   else \
     echo '[INFO] Playwright MCP disabled'; \
+  fi && \
+  [ -s \"$CLAUDE_JSON\" ] || echo '{}' > \"$CLAUDE_JSON\" && \
+  if jq --argjson servers \"$MCP_SERVERS\" '.mcpServers = ((.mcpServers // {}) | del(.homeassistant, .playwright)) + $servers' \"$CLAUDE_JSON\" > /tmp/claude.json.tmp; then \
+    cat /tmp/claude.json.tmp > \"$CLAUDE_JSON\" && rm -f /tmp/claude.json.tmp; \
+  else \
+    rm -f /tmp/claude.json.tmp; \
+    echo \"[ERROR] $CLAUDE_JSON is not valid JSON - MCP servers were not configured\"; \
   fi && \
   if [ \"$REMOTE_CONTROL\" = \"true\" ]; then \
     jq '.remoteControlAtStartup = true' \"$SETTINGS_FILE\" > /tmp/settings.tmp && mv /tmp/settings.tmp \"$SETTINGS_FILE\" && \

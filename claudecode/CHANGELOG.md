@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.1] - 2026-10-07
+
+### Fixed
+- Starting the add-on after it had been stopped for more than a few hours left Claude Code logged out. On boot, `claude mcp remove` and `claude mcp add-json` authenticate against the Anthropic API; with an expired access token that triggers an OAuth refresh, and refresh tokens are single-use. When the call was cut short (the 30s `timeout`) the old refresh token was already spent and the new one never saved. MCP servers are now written straight into `.claude.json` with `jq`, so no authenticating `claude` command runs before the terminal opens. Other MCP servers you added yourself are kept, and the `homeassistant` and `playwright` entries are still removed when their options are turned off
+
 ## [1.0.0] - 2026-10-06
 
 First release. Based on the Claude Code add-on 1.2.65 from robsonfelix/robsonfelix-hass-addons, commit `2870702fa97a953dbb542536eba10ecd919591d4`.
